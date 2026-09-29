@@ -1,174 +1,778 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JUMP DECK // VOID HOSTILE</title>
+    <title>JUMP DECK // HOSTILE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
-        body { background: #000; color: #00F3FF; font-family: 'JetBrains+Mono', monospace; overflow: hidden; margin: 0; touch-action: manipulation; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 1rem; left: 1rem; pointer-events: none; text-shadow: 0 0 10px #00F3FF; width: calc(100% - 2rem); display: flex; justify-content: space-between; }
-        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: all; width: 80%; z-index: 10; }
-        .btn { background: #00F3FF; color: #000; padding: 1rem 2rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: inline-block; width: 100%; }
+        body { background: #000; color: #00F3FF; font-family: 'JetBrains+Mono', monospace; overflow: hidden; margin: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui { position: absolute; top: 1rem; left: 1rem; pointer-events: none; text-shadow: 0 0 10px #00F3FF; width: calc(100% - 2rem); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: all; width: 85%; max-width: 400px; z-index: 10; }
+        .btn { background: #00F3FF; color: #000; padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; margin-top: 0.75rem; display: inline-block; width: 100%; border: none; border-radius: 4px; transition: all 0.2s; }
+        .btn:hover { background: #70F8FF; box-shadow: 0 0 15px #00F3FF; }
+        .btn-sec { background: transparent; color: #00F3FF; border: 1px solid #00F3FF; padding: 0.6rem 1rem; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .btn-sec:hover { background: rgba(0,243,255,0.15); }
         .glitch { animation: shake 0.5s infinite; color: #ff0000; }
         @keyframes shake { 0% { transform: translate(0); } 25% { transform: translate(2px, -2px); } 50% { transform: translate(-2px, 2px); } 100% { transform: translate(0); } }
+        
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 20; justify-content: center; align-items: center; padding: 1rem; }
+        .modal-box { background: #080d14; border: 1px solid #00F3FF; box-shadow: 0 0 25px rgba(0,243,255,0.3); border-radius: 8px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; padding: 1.5rem; color: #fff; }
+        .tab-btn { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; color: #888; font-weight: bold; }
+        .tab-btn.active { border-color: #00F3FF; color: #00F3FF; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div>SCORE: <span id="score">0</span> / 75</div>
-        <div>HP: <span id="hp">3</span></div>
+        <div>
+            <div>SCORE: <span id="score">0</span> / 75</div>
+            <div id="zone-text" class="text-[10px] text-orange-400 font-bold tracking-wider">ZONE 1: STANDARD DECKS</div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-cyan-300 font-bold">🌟 <span id="star-bank">0</span></span>
+            <div>HP: <span id="hp">3</span></div>
+        </div>
     </div>
+
     <div id="msg">
-        <h1 class="text-3xl mb-2">VOID_JUMPER</h1>
-        <p class="text-xs text-orange-500 mb-4">TAP SIDES TO JUMP // AVOID SHARDS</p>
-        <div class="btn" onclick="startGame()">INITIATE_SEQUENCE</div>
+        <h1 class="text-3xl mb-1 tracking-wider">JUMP DECK</h1>
+        <p class="text-xs text-orange-500 mb-3">TAP SIDES TO JUMP // COLLECT BLUE STARS</p>
+        <button class="btn mb-2" onclick="startGame()">INITIATE_SEQUENCE</button>
+        <button class="btn-sec w-full" onclick="openModal('profile')">PROFILE & STORE 🌟</button>
     </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4 border-b border-cyan-900 pb-2">
+                <div class="flex gap-4">
+                    <button id="tab-profile-btn" class="tab-btn active" onclick="switchTab('profile')">PROFILE</button>
+                    <button id="tab-store-btn" class="tab-btn" onclick="switchTab('store')">FLAIR STORE</button>
+                </div>
+                <button onclick="closeModal()" class="text-cyan-400 text-xl font-bold px-2">&times;</button>
+            </div>
+
+            <div id="tab-profile">
+                <div class="bg-slate-900/80 p-4 rounded-lg border border-cyan-800/50 mb-4 space-y-2 text-sm">
+                    <div class="flex justify-between"><span>STAR BANK BALANCE:</span> <span class="text-cyan-300 font-bold">🌟 <span id="prof-bank">0</span></span></div>
+                    <div class="flex justify-between"><span>BEST DECK RECORD:</span> <span class="text-orange-400 font-bold"><span id="prof-best">0</span> / 75</span></div>
+                    <div class="flex justify-between"><span>LIFETIME STARS COLLECTED:</span> <span class="text-yellow-300 font-bold"><span id="prof-lifetime">0</span></span></div>
+                    <div class="flex justify-between"><span>TOTAL RUNS INITIATED:</span> <span class="text-cyan-200 font-bold"><span id="prof-runs">0</span></span></div>
+                </div>
+
+                <div class="text-xs text-cyan-400/80 mb-4 bg-cyan-950/40 p-3 rounded border border-cyan-900">
+                    <div class="font-bold mb-1">CLOUD SAVE STATUS</div>
+                    <div id="save-status">Ready to sync progress.</div>
+                </div>
+
+                <button class="btn" onclick="saveProgressToCloud()">SAVE PROGRESS TO CLOUD</button>
+            </div>
+
+            <div id="tab-store" class="hidden">
+                <div class="mb-4 text-xs text-cyan-300 flex justify-between items-center bg-cyan-950/60 p-2 rounded">
+                    <span>AVAILABLE BANK:</span>
+                    <span class="font-bold">🌟 <span id="store-bank">0</span></span>
+                </div>
+
+                <h3 class="text-xs font-bold text-orange-400 mb-2 uppercase">PLAYER AURA COLORS</h3>
+                <div id="flair-colors" class="grid grid-cols-2 gap-2 mb-4"></div>
+
+                <h3 class="text-xs font-bold text-orange-400 mb-2 uppercase">JUMP TRAIL EFFECTS</h3>
+                <div id="flair-trails" class="grid grid-cols-2 gap-2"></div>
+            </div>
+        </div>
+    </div>
+
     <canvas id="game"></canvas>
 
-<script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const scoreEl = document.getElementById('score');
-    const hpEl = document.getElementById('hp');
-    const msg = document.getElementById('msg');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const WIN_SCORE = 75;
-    const JUMP_BUFFER_VAL = 10;
-    let player, platforms, shards, score, hp, gameActive = false, cameraY = 0, frame = 0, shake = 0, lastSafePlatform = null, jumpBufferCounter = 0;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'jump-deck-app';
+        let db = null, auth = null;
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-    function startGame() {
-        platforms = []; shards = []; score = 0; hp = 3; frame = 0; shake = 0; jumpBufferCounter = 0;
-        hpEl.innerText = hp; scoreEl.innerText = score;
-        
-        const startY = canvas.height - 100;
-        const firstPlatform = {
-            x: canvas.width / 2 - 40, y: startY, w: 80, h: 12, moveRange: 0, speed: 0,
-            currentX: canvas.width / 2 - 40, type: 'normal', scored: true
-        };
-        platforms.push(firstPlatform);
-        lastSafePlatform = firstPlatform;
-
-        player = { x: canvas.width / 2, y: startY - 10, vx: 0, vy: 0, onPlatform: true, platformRef: firstPlatform };
-        cameraY = player.y - canvas.height + 200;
-        for(let i=1; i<8; i++) spawnPlatform(startY - (i * 140));
-        
-        gameActive = true;
-        msg.style.display = 'none';
-        requestAnimationFrame(loop);
-    }
-
-    function spawnPlatform(y) {
-        const isMoving = Math.random() > 0.6 && score > 20;
-        const isBreaking = Math.random() > 0.8 && score > 10;
-        platforms.push({
-            x: Math.random() * (canvas.width - 80), y: y, w: 80, h: 12,
-            moveRange: isMoving ? 100 : 0, speed: 0.02 + Math.random() * 0.03,
-            currentX: 0, type: isBreaking ? 'breaking' : 'normal', broken: false, breakTime: 0, scored: false
-        });
-        if (Math.random() > 0.7 && platforms.length > 5) shards.push({ x: Math.random() * canvas.width, y: y - 60, size: 15 });
-    }
-
-    window.addEventListener('touchstart', (e) => {
-        if(!gameActive) return;
-        jumpBufferCounter = JUMP_BUFFER_VAL;
-        player.vx = (e.touches[0].clientX < canvas.width/2) ? -6 : 6;
-    });
-
-    function respawn() {
-        shake = 20; hp--; hpEl.innerText = hp;
-        if (hp <= 0) { endGame("FATAL_ERROR", "glitch"); return; }
-        const target = lastSafePlatform || platforms[0];
-        player.x = target.currentX + (target.w / 2); player.y = target.y - 10;
-        player.vx = 0; player.vy = 0; player.onPlatform = true; player.platformRef = target;
-        cameraY = player.y - canvas.height + 200;
-    }
-
-    function endGame(title, className) {
-        gameActive = false;
-        msg.style.display = 'block';
-        msg.querySelector('h1').innerText = title;
-        msg.querySelector('h1').className = "text-3xl mb-2 " + className;
-    }
-
-    function loop() {
-        if(!gameActive) return;
-        frame++;
-        if (jumpBufferCounter > 0) jumpBufferCounter--;
-
-        if (player.onPlatform && player.platformRef) {
-            player.x = player.platformRef.currentX + (player.platformRef.w / 2);
-            player.y = player.platformRef.y - 10;
-            if (player.platformRef.type === 'breaking') {
-                player.platformRef.breakTime++;
-                if (player.platformRef.breakTime > 30) {
-                    player.platformRef.broken = true; player.onPlatform = false; player.platformRef = null;
-                }
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    loadProgressFromCloud();
+                };
+                initAuth().catch(console.error);
             }
-            // Execute buffered jump
-            if (jumpBufferCounter > 0) {
-                player.vy = -16; player.onPlatform = false; player.platformRef = null; jumpBufferCounter = 0;
-            }
-        } else {
-            player.vy += 0.7; player.x += player.vx; player.y += player.vy;
+        } catch (e) {
+            console.log('Running in local session mode.');
         }
 
-        if(player.x < 0) player.x = canvas.width;
-        if(player.x > canvas.width) player.x = 0;
-        if(player.y < cameraY + canvas.height/2) cameraY = player.y - canvas.height/2;
+        window.playerProfile = {
+            bank: 0,
+            bestScore: 0,
+            lifetimeStars: 0,
+            runsPlayed: 0,
+            equippedColor: '#00F3FF',
+            equippedTrail: 'classic',
+            unlockedFlair: ['color_#00F3FF', 'trail_classic']
+        };
 
-        platforms.forEach(p => {
-            p.currentX = p.moveRange > 0 ? (canvas.width/2 - p.w/2) + Math.sin(frame * p.speed) * (canvas.width/2 - p.w/2) : p.x;
-            if(!player.onPlatform && !p.broken && player.vy > 0 && player.x > p.currentX && player.x < p.currentX + p.w &&
-               player.y + 10 > p.y && player.y + 10 < p.y + p.h + 10) {
-                player.onPlatform = true; player.platformRef = p; player.vy = 0; player.vx = 0; player.y = p.y - 10;
-                if (!p.scored) { score++; p.scored = true; scoreEl.innerText = score; }
-                if (p.type === 'normal') lastSafePlatform = p;
-                if (score >= WIN_SCORE) endGame("SYSTEM_RESTORED", "text-green-400");
-                // Check buffer immediately on landing
-                if (jumpBufferCounter > 0) {
-                    player.vy = -16; player.onPlatform = false; player.platformRef = null; jumpBufferCounter = 0;
+        window.saveProgressToCloud = async function() {
+            const statusEl = document.getElementById('save-status');
+            if (statusEl) statusEl.innerText = "Saving progress...";
+
+            if (!db || !auth || !auth.currentUser) {
+                if (statusEl) statusEl.innerText = "Saved locally for this session!";
+                return;
+            }
+
+            try {
+                const userId = auth.currentUser.uid;
+                const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userData', 'profile');
+                await setDoc(userDocRef, window.playerProfile, { merge: true });
+                if (statusEl) statusEl.innerText = "✓ Progress safely saved to cloud!";
+            } catch (err) {
+                console.error('Save error:', err);
+                if (statusEl) statusEl.innerText = "Saved locally. Cloud sync offline.";
+            }
+        };
+
+        window.loadProgressFromCloud = async function() {
+            if (!db || !auth || !auth.currentUser) return;
+            try {
+                const userId = auth.currentUser.uid;
+                const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userData', 'profile');
+                const snap = await getDoc(userDocRef);
+                if (snap.exists()) {
+                    window.playerProfile = { ...window.playerProfile, ...snap.data() };
+                    if (window.updateProfileUI) window.updateProfileUI();
                 }
+            } catch (err) {
+                console.error('Cloud load failed:', err);
+            }
+        };
+    </script>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const hpEl = document.getElementById('hp');
+        const msg = document.getElementById('msg');
+        const starBankEl = document.getElementById('star-bank');
+
+        const WIN_SCORE = 75;
+        const JUMP_BUFFER_VAL = 10;
+        let player, platforms, shards, blueStars, trailParticles, score, hp, gameActive = false, cameraY = 0, frame = 0, shake = 0, lastSafePlatform = null, jumpBufferCounter = 0;
+        let animId = null;
+        let isHolding = false, holdX = 0;
+
+        function updateZoneObjective() {
+            const zoneEl = document.getElementById('zone-text');
+            if (!zoneEl) return;
+            if (score < 20) {
+                zoneEl.innerText = "ZONE 1: STANDARD DECKS";
+                zoneEl.className = "text-[10px] text-orange-400 font-bold tracking-wider";
+            } else if (score < 45) {
+                zoneEl.innerText = "ZONE 2: STEALTH & INVISIBLE DECKS";
+                zoneEl.className = "text-[10px] text-cyan-400 font-bold tracking-wider";
+            } else {
+                zoneEl.innerText = "ZONE 3: HIGH-SPEED VOID HAZARDS";
+                zoneEl.className = "text-[10px] text-purple-400 font-bold tracking-wider";
+            }
+        }
+
+        const COLOR_FLAIRS = [
+            { id: 'color_#00F3FF', name: 'NEON CYAN', color: '#00F3FF', price: 0 },
+            { id: 'color_#FF007F', name: 'PLASMA PINK', color: '#FF007F', price: 10 },
+            { id: 'color_#FFD700', name: 'SOLAR GOLD', color: '#FFD700', price: 20 },
+            { id: 'color_#9D00FF', name: 'VOID VIOLET', color: '#9D00FF', price: 35 },
+            { id: 'color_#00FF66', name: 'MATRIX GREEN', color: '#00FF66', price: 50 }
+        ];
+
+        const TRAIL_FLAIRS = [
+            { id: 'trail_classic', name: 'CLASSIC PULSE', type: 'classic', price: 0 },
+            { id: 'trail_stardust', name: 'STAR DUST', type: 'stardust', price: 15 },
+            { id: 'trail_spark', name: 'QUANTUM SPARK', type: 'spark', price: 30 }
+        ];
+
+        function updateProfileUI() {
+            const prof = window.playerProfile;
+            if (!prof) return;
+            
+            starBankEl.innerText = prof.bank;
+            document.getElementById('prof-bank').innerText = prof.bank;
+            document.getElementById('prof-best').innerText = prof.bestScore;
+            document.getElementById('prof-lifetime').innerText = prof.lifetimeStars;
+            document.getElementById('prof-runs').innerText = prof.runsPlayed;
+            document.getElementById('store-bank').innerText = prof.bank;
+
+            renderStoreCatalog();
+        }
+        window.updateProfileUI = updateProfileUI;
+
+        function renderStoreCatalog() {
+            const prof = window.playerProfile;
+            const colorContainer = document.getElementById('flair-colors');
+            const trailContainer = document.getElementById('flair-trails');
+            if (!colorContainer || !trailContainer) return;
+
+            colorContainer.innerHTML = COLOR_FLAIRS.map(f => {
+                const unlocked = prof.unlockedFlair.includes(f.id);
+                const equipped = prof.equippedColor === f.color;
+                return `
+                    <div class="bg-slate-900 border ${equipped ? 'border-cyan-400' : 'border-slate-800'} p-2 rounded text-center">
+                        <div class="w-6 h-6 rounded mx-auto mb-1 border" style="background:${f.color}; border-color:${f.color}"></div>
+                        <div class="text-[10px] font-bold text-white mb-1">${f.name}</div>
+                        ${equipped ? `<span class="text-[9px] text-cyan-400 font-bold">[EQUIPPED]</span>` :
+                          unlocked ? `<button onclick="equipFlair('color', '${f.color}')" class="text-[10px] bg-cyan-900 text-cyan-200 px-2 py-0.5 rounded w-full">EQUIP</button>` :
+                          `<button onclick="buyFlair('${f.id}', ${f.price}, 'color', '${f.color}')" class="text-[10px] bg-orange-500 text-black font-bold px-2 py-0.5 rounded w-full">🌟 ${f.price}</button>`}
+                    </div>
+                `;
+            }).join('');
+
+            trailContainer.innerHTML = TRAIL_FLAIRS.map(f => {
+                const unlocked = prof.unlockedFlair.includes(f.id);
+                const equipped = prof.equippedTrail === f.type;
+                return `
+                    <div class="bg-slate-900 border ${equipped ? 'border-cyan-400' : 'border-slate-800'} p-2 rounded text-center">
+                        <div class="text-[10px] font-bold text-white my-1">${f.name}</div>
+                        ${equipped ? `<span class="text-[9px] text-cyan-400 font-bold">[EQUIPPED]</span>` :
+                          unlocked ? `<button onclick="equipFlair('trail', '${f.type}')" class="text-[10px] bg-cyan-900 text-cyan-200 px-2 py-0.5 rounded w-full">EQUIP</button>` :
+                          `<button onclick="buyFlair('${f.id}', ${f.price}, 'trail', '${f.type}')" class="text-[10px] bg-orange-500 text-black font-bold px-2 py-0.5 rounded w-full">🌟 ${f.price}</button>`}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.buyFlair = function(id, price, category, val) {
+            const prof = window.playerProfile;
+            if (prof.bank >= price) {
+                prof.bank -= price;
+                prof.unlockedFlair.push(id);
+                if (category === 'color') prof.equippedColor = val;
+                if (category === 'trail') prof.equippedTrail = val;
+                updateProfileUI();
+                if (window.saveProgressToCloud) window.saveProgressToCloud();
+            }
+        };
+
+        window.equipFlair = function(category, val) {
+            const prof = window.playerProfile;
+            if (category === 'color') prof.equippedColor = val;
+            if (category === 'trail') prof.equippedTrail = val;
+            updateProfileUI();
+            if (window.saveProgressToCloud) window.saveProgressToCloud();
+        };
+
+        window.openModal = function(tab) {
+            document.getElementById('modal').style.display = 'flex';
+            updateProfileUI();
+            switchTab(tab);
+        };
+
+        window.closeModal = function() {
+            document.getElementById('modal').style.display = 'none';
+        };
+
+        window.switchTab = function(tab) {
+            document.getElementById('tab-profile').classList.toggle('hidden', tab !== 'profile');
+            document.getElementById('tab-store').classList.toggle('hidden', tab !== 'store');
+            document.getElementById('tab-profile-btn').classList.toggle('active', tab === 'profile');
+            document.getElementById('tab-store-btn').classList.toggle('active', tab === 'store');
+        };
+
+        function resize() {
+            const oldWidth = canvas.width || window.innerWidth;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            if (platforms && oldWidth > 0 && oldWidth !== canvas.width) {
+                const scale = canvas.width / oldWidth;
+                platforms.forEach(p => {
+                    p.x = Math.max(10, Math.min(canvas.width - p.w - 10, p.x * scale));
+                });
+            }
+        }
+
+        function spawnPlatform(y) {
+            const isMoving = Math.random() > 0.6 && score > 15;
+            const isBreaking = !isMoving && Math.random() > 0.75 && score > 8;
+            const isInvisible = !isMoving && !isBreaking && Math.random() > 0.6 && score > 18;
+            const w = 80;
+            const margin = 20;
+            const x = margin + Math.random() * Math.max(10, canvas.width - w - margin * 2);
+            
+            const platform = {
+                x: x, y: y, w: w, h: 12,
+                moveRange: isMoving ? Math.min(120 + (score * 0.8), canvas.width / 2.5) : 0,
+                speed: 0.02 + Math.random() * 0.03 + (score * 0.0003),
+                currentX: x, type: isInvisible ? 'invisible' : (isBreaking ? 'breaking' : 'normal'),
+                broken: false, breakTime: 0, scored: false, revealed: false
+            };
+            platforms.push(platform);
+
+            if (Math.random() > 0.65 && platforms.length > 3) {
+                shards.push({
+                    x: margin + Math.random() * (canvas.width - margin * 2),
+                    y: y - 50 - Math.random() * 30,
+                    size: 12
+                });
+            }
+
+            if (Math.random() > 0.45 && platforms.length > 1) {
+                blueStars.push({
+                    x: x + 15 + Math.random() * (w - 30),
+                    y: y - 35,
+                    collected: false
+                });
+            }
+        }
+
+        function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 12;
+            ctx.fill();
+        }
+
+        window.startGame = function() {
+            if (animId) cancelAnimationFrame(animId);
+            resize();
+            
+            platforms = []; 
+            shards = []; 
+            blueStars = [];
+            trailParticles = [];
+            score = 0; 
+            hp = 3; 
+            frame = 0; 
+            shake = 0; 
+            jumpBufferCounter = 0;
+            isHolding = false;
+            
+            const prof = window.playerProfile;
+            if (prof) prof.runsPlayed++;
+            updateProfileUI();
+
+            hpEl.innerText = hp; 
+            scoreEl.innerText = score;
+            updateZoneObjective();
+            
+            const startY = canvas.height - 120;
+            const firstPlatform = {
+                x: canvas.width / 2 - 40, y: startY, w: 80, h: 12, moveRange: 0, speed: 0,
+                currentX: canvas.width / 2 - 40, type: 'normal', broken: false, breakTime: 0, scored: true
+            };
+            platforms.push(firstPlatform);
+            lastSafePlatform = firstPlatform;
+
+            player = { 
+                x: canvas.width / 2, 
+                y: startY - 10, 
+                lastY: startY - 10,
+                vx: 0, 
+                vy: 0, 
+                scaleX: 1,
+                scaleY: 1,
+                onPlatform: true, 
+                platformRef: firstPlatform 
+            };
+            
+            cameraY = player.y - canvas.height + 200;
+            
+            for (let i = 1; i < 10; i++) {
+                spawnPlatform(startY - (i * 130));
+            }
+            
+            gameActive = true;
+            msg.style.display = 'none';
+            animId = requestAnimationFrame(loop);
+        };
+
+        function handleInput(clientX) {
+            if (!gameActive) return;
+            isHolding = true;
+            holdX = clientX;
+            jumpBufferCounter = JUMP_BUFFER_VAL;
+            if (player.vy >= 0 || player.onPlatform) {
+                player.vy = -13.8;
+                player.onPlatform = false;
+                player.platformRef = null;
+            }
+        }
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#msg') || e.target.closest('#modal')) return;
+            if (e.touches.length > 0) {
+                handleInput(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0 && isHolding) {
+                holdX = e.touches[0].clientX;
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => { isHolding = false; });
+        window.addEventListener('touchcancel', () => { isHolding = false; });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#msg') || e.target.closest('#modal') || e.target.tagName === 'BUTTON') return;
+            handleInput(e.clientX);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isHolding) {
+                holdX = e.clientX;
             }
         });
 
-        shards.forEach(s => { if (Math.sqrt((player.x-s.x)**2 + (player.y-s.y)**2) < 20) respawn(); });
-        if(player.y > cameraY + canvas.height) respawn();
-        platforms = platforms.filter(p => p.y < cameraY + canvas.height + 100);
-        shards = shards.filter(s => s.y < cameraY + canvas.height + 100);
-        while(platforms.length < 10) spawnPlatform(platforms[platforms.length-1].y - 140);
+        window.addEventListener('mouseup', () => { isHolding = false; });
 
-        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        if (shake > 0) { ctx.translate(Math.random()*shake - shake/2, Math.random()*shake - shake/2); shake *= 0.9; }
-        ctx.translate(0, -cameraY);
+        function respawn() {
+            shake = 20; 
+            hp--; 
+            hpEl.innerText = hp;
+            
+            if (hp <= 0) { 
+                endGame("FATAL_ERROR", "glitch"); 
+                return; 
+            }
+            
+            let target = lastSafePlatform;
+            if (!target || target.broken) {
+                target = platforms.find(p => !p.broken && p.type === 'normal') || platforms[0];
+            }
+            
+            target.currentX = target.moveRange > 0 ? 
+                (canvas.width / 2 - target.w / 2) + Math.sin(frame * target.speed) * (canvas.width / 2 - target.w / 2) : target.x;
 
-        ctx.fillStyle = '#ff0000'; ctx.shadowBlur = 15; ctx.shadowColor = '#ff0000';
-        shards.forEach(s => { ctx.beginPath(); ctx.moveTo(s.x, s.y - s.size); ctx.lineTo(s.x + s.size, s.y); ctx.lineTo(s.x, s.y + s.size); ctx.lineTo(s.x - s.size, s.y); ctx.closePath(); ctx.fill(); });
+            player.x = target.currentX + (target.w / 2); 
+            player.y = target.y - 10;
+            player.lastY = player.y;
+            player.vx = 0; 
+            player.vy = 0; 
+            player.scaleX = 1;
+            player.scaleY = 1;
+            player.onPlatform = true; 
+            player.platformRef = target;
+            
+            cameraY = player.y - canvas.height + 200;
+        }
 
-        ctx.shadowColor = '#00F3FF'; ctx.fillStyle = '#00F3FF'; ctx.fillRect(player.x - 10, player.y - 10, 20, 20);
+        function endGame(title, className) {
+            gameActive = false;
+            msg.style.display = 'block';
+            const h1 = msg.querySelector('h1');
+            h1.innerText = title;
+            h1.className = "text-3xl mb-1 " + className;
 
-        platforms.forEach(p => {
-            if (p.broken) return;
-            ctx.shadowBlur = 10;
-            if (p.type === 'breaking') {
-                ctx.shadowColor = p.breakTime > 0 ? '#FF0000' : '#FFFFFF';
-                ctx.fillStyle = p.breakTime > 0 && frame % 4 < 2 ? '#FF0000' : '#FFFFFF';
-                ctx.globalAlpha = 1 - p.breakTime / 30;
-            } else { ctx.shadowColor = '#FF5F00'; ctx.fillStyle = '#FF5F00'; }
-            ctx.fillRect(p.currentX, p.y, p.w, p.h); ctx.globalAlpha = 1;
-        });
-        ctx.restore();
-        if (gameActive) requestAnimationFrame(loop);
-    }
-    window.onload = resize;
-</script>
+            if (window.saveProgressToCloud) {
+                window.saveProgressToCloud();
+            }
+        }
+
+        function loop() {
+            if (!gameActive) return;
+            frame++;
+            
+            let targetVx = 0;
+            if (isHolding) {
+                jumpBufferCounter = JUMP_BUFFER_VAL;
+                targetVx = (holdX < window.innerWidth / 2) ? -7.8 : 7.8;
+                if (player.vy >= 0 && !player.onPlatform) {
+                    player.vy = -13.8;
+                }
+            } else if (jumpBufferCounter > 0) {
+                jumpBufferCounter--;
+            }
+
+            if (isHolding) {
+                const isTurning = (targetVx > 0 && player.vx < 0) || (targetVx < 0 && player.vx > 0);
+                const accelRate = isTurning ? 0.7 : 0.42;
+                player.vx += (targetVx - player.vx) * accelRate;
+            } else {
+                player.vx *= 0.82;
+                if (Math.abs(player.vx) < 0.1) player.vx = 0;
+            }
+
+            player.lastY = player.y;
+
+            if (player.onPlatform && player.platformRef) {
+                const p = player.platformRef;
+                if (p.broken) {
+                    player.onPlatform = false;
+                    player.platformRef = null;
+                } else {
+                    player.x = p.currentX + (p.w / 2);
+                    player.y = p.y - 10;
+                    
+                    if (p.type === 'breaking') {
+                        p.breakTime++;
+                        if (p.breakTime > 30) {
+                            p.broken = true; 
+                            player.onPlatform = false; 
+                            player.platformRef = null;
+                        }
+                    }
+                    
+                    if (jumpBufferCounter > 0 || isHolding) {
+                        player.vy = -14.2; 
+                        player.scaleX = 0.65;
+                        player.scaleY = 1.35;
+                        player.onPlatform = false; 
+                        player.platformRef = null; 
+                        jumpBufferCounter = 0;
+                    }
+                }
+            } else {
+                const gravity = Math.abs(player.vy) < 2.5 ? 0.38 : 0.62;
+                player.vy += gravity; 
+                player.x += player.vx; 
+                player.y += player.vy;
+
+                if (player.scaleX) player.scaleX += (1 - player.scaleX) * 0.15;
+                if (player.scaleY) player.scaleY += (1 - player.scaleY) * 0.15;
+            }
+
+            const trailStyle = window.playerProfile?.equippedTrail || 'classic';
+            if (frame % 2 === 0) {
+                trailParticles.push({
+                    x: player.x + (Math.random() - 0.5) * 6,
+                    y: player.y + 8,
+                    size: trailStyle === 'spark' ? 3 + Math.random() * 4 : 5,
+                    opacity: 0.8,
+                    color: window.playerProfile?.equippedColor || '#00F3FF',
+                    type: trailStyle
+                });
+            }
+
+            if (player.x < 0) player.x = canvas.width;
+            if (player.x > canvas.width) player.x = 0;
+
+            const targetCamY = player.y - canvas.height + 250;
+            if (targetCamY < cameraY) {
+                cameraY = targetCamY;
+            }
+
+            platforms.forEach(p => {
+                p.currentX = p.moveRange > 0 ? 
+                    (canvas.width / 2 - p.w / 2) + Math.sin(frame * p.speed) * (canvas.width / 2 - p.w / 2) : p.x;
+                
+                // Count deck as cleared whenever player ascends past or reaches its height
+                if (!p.scored && player.y + 10 <= p.y) {
+                    score++; 
+                    p.scored = true; 
+                    scoreEl.innerText = score;
+                    updateZoneObjective();
+
+                    const prof = window.playerProfile;
+                    if (prof && score > prof.bestScore) {
+                        prof.bestScore = score;
+                    }
+
+                    if (score >= WIN_SCORE) {
+                        endGame("SYSTEM_RESTORED", "text-green-400");
+                        return;
+                    }
+                }
+
+                if (!player.onPlatform && !p.broken && player.vy > 0) {
+                    const footPrev = player.lastY + 10;
+                    const footCurr = player.y + 10;
+                    
+                    if (player.x >= p.currentX - 8 && player.x <= p.currentX + p.w + 8) {
+                        if (footPrev <= p.y + 6 && footCurr >= p.y) {
+                            player.onPlatform = true; 
+                            player.platformRef = p; 
+                            player.vy = 0; 
+                            player.vx = 0; 
+                            player.y = p.y - 10;
+                            
+                            if (!p.scored) { 
+                                score++; 
+                                p.scored = true; 
+                                scoreEl.innerText = score;
+
+                                const prof = window.playerProfile;
+                                if (prof && score > prof.bestScore) {
+                                    prof.bestScore = score;
+                                }
+                            }
+                            
+                            if (p.type === 'normal') lastSafePlatform = p;
+                            
+                            if (score >= WIN_SCORE) {
+                                endGame("SYSTEM_RESTORED", "text-green-400");
+                                return;
+                            }
+
+                            if (jumpBufferCounter > 0 || isHolding) {
+                                player.vy = -14.2; 
+                                player.scaleX = 0.65;
+                                player.scaleY = 1.35;
+                                player.onPlatform = false; 
+                                player.platformRef = null; 
+                                jumpBufferCounter = 0;
+                            }
+                        }
+                    }
+                }
+            });
+
+            blueStars.forEach(s => {
+                if (!s.collected && Math.hypot(player.x - s.x, player.y - s.y) < 22) {
+                    s.collected = true;
+                    const prof = window.playerProfile;
+                    if (prof) {
+                        prof.bank++;
+                        prof.lifetimeStars++;
+                        updateProfileUI();
+                    }
+                }
+            });
+
+            shards.forEach(s => { 
+                if (Math.hypot(player.x - s.x, player.y - s.y) < 18) {
+                    respawn(); 
+                }
+            });
+
+            if (player.y > cameraY + canvas.height + 50) {
+                respawn();
+            }
+
+            platforms = platforms.filter(p => p.y < cameraY + canvas.height + 200);
+            shards = shards.filter(s => s.y < cameraY + canvas.height + 200);
+            blueStars = blueStars.filter(s => !s.collected && s.y < cameraY + canvas.height + 200);
+
+            let highestY = platforms.reduce((min, p) => Math.min(min, p.y), canvas.height);
+            while (platforms.length < 10) {
+                highestY -= 130;
+                spawnPlatform(highestY);
+            }
+
+            ctx.fillStyle = '#050505'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            if (shake > 0) { 
+                ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake); 
+                shake *= 0.85; 
+                if (shake < 0.5) shake = 0;
+            }
+            ctx.translate(0, -cameraY);
+
+            trailParticles.forEach((t) => {
+                ctx.save();
+                ctx.globalAlpha = t.opacity;
+                ctx.fillStyle = t.color;
+                ctx.shadowColor = t.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                if (t.type === 'stardust') {
+                    ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+                } else {
+                    ctx.fillRect(t.x - t.size/2, t.y - t.size/2, t.size, t.size);
+                }
+                ctx.fill();
+                ctx.restore();
+
+                t.opacity -= 0.04;
+                t.y += 0.5;
+            });
+            trailParticles = trailParticles.filter(t => t.opacity > 0);
+
+            ctx.fillStyle = '#ff0000'; 
+            ctx.shadowBlur = 12; 
+            ctx.shadowColor = '#ff0000';
+            shards.forEach(s => { 
+                ctx.beginPath(); 
+                ctx.moveTo(s.x, s.y - s.size); 
+                ctx.lineTo(s.x + s.size, s.y); 
+                ctx.lineTo(s.x, s.y + s.size); 
+                ctx.lineTo(s.x - s.size, s.y); 
+                ctx.closePath(); 
+                ctx.fill(); 
+            });
+
+            blueStars.forEach(s => {
+                drawStar(s.x, s.y, 5, 10, 5, '#00F3FF');
+            });
+
+            const playerColor = window.playerProfile?.equippedColor || '#00F3FF';
+            ctx.shadowColor = playerColor; 
+            ctx.shadowBlur = 14;
+            ctx.fillStyle = playerColor; 
+            const pW = 20 * (player.scaleX || 1);
+            const pH = 20 * (player.scaleY || 1);
+            ctx.fillRect(player.x - pW / 2, player.y - pH / 2, pW, pH);
+
+            platforms.forEach(p => {
+                if (p.broken) return;
+                ctx.shadowBlur = 10;
+                if (p.type === 'breaking') {
+                    ctx.shadowColor = p.breakTime > 0 ? '#FF0000' : '#FFFFFF';
+                    ctx.fillStyle = (p.breakTime > 0 && Math.floor(frame / 4) % 2 === 0) ? '#FF0000' : '#FFFFFF';
+                    ctx.globalAlpha = Math.max(0, 1 - p.breakTime / 30);
+                } else if (p.type === 'invisible') {
+                    const dist = Math.hypot(player.x - (p.currentX + p.w / 2), player.y - p.y);
+                    if (dist < 120 || p.scored) p.revealed = true;
+                    ctx.globalAlpha = p.revealed ? Math.max(0.15, 1 - (dist / 140)) : 0.05;
+                    ctx.shadowColor = '#00F3FF';
+                    ctx.fillStyle = '#00F3FF';
+                } else { 
+                    ctx.shadowColor = '#FF5F00'; 
+                    ctx.fillStyle = '#FF5F00'; 
+                }
+                ctx.fillRect(p.currentX, p.y, p.w, p.h); 
+                ctx.globalAlpha = 1;
+            });
+
+            ctx.restore();
+
+            if (gameActive) {
+                animId = requestAnimationFrame(loop);
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        window.onload = function() {
+            resize();
+            updateProfileUI();
+        };
+    </script>
 </body>
 </html>
+```
